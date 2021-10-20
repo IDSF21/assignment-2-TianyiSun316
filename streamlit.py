@@ -1,5 +1,4 @@
 import streamlit as st
-import time
 import pandas as pd
 from datetime import datetime, timedelta
 
@@ -124,18 +123,26 @@ if __name__ == '__main__':
     granularity_data = get_all_granularity_data(all_games_stats)
 
     # get overlap days
-    overlap_days = (Lebron_last_season_date - Kobe_first_season_date + career_time_diff).days
+    overlap_days = (Lebron_last_season_date - Kobe_first_season_date).days
     overlap_date_list = [datetime.strftime(Kobe_first_season_date + timedelta(days=i), '%Y-%m-%d') for i in range(overlap_days+1)]
 
+    st.title("23 VS 24")
+    st.subheader("Kobe or LeBron, who is a better player?")
     # get selected display days
+    align_career_time = st.checkbox('Align Career Time')
+    if align_career_time:
+        overlap_date_list = [datetime.strftime(Kobe_first_season_date + timedelta(days=i), '%Y-%m-%d') for i in range(overlap_days+career_time_diff.days+1)]
+    else:
+        overlap_date_list = [datetime.strftime(Kobe_first_season_date + timedelta(days=i), '%Y-%m-%d') for i in range(overlap_days+1)]
+
+
     start_date, end_date = st.select_slider(
-            'Select display time range',
+            'Select display time range (select a time range that you want to show the data)',
             options=overlap_date_list,
             value=(datetime.strftime(Kobe_first_season_date, '%Y-%m-%d'), datetime.strftime(Lebron_last_season_date, '%Y-%m-%d')))
-    data_type = st.selectbox("Which type of data?", ('Points', 'Rebounds', 'Assists', 'Steals', "Blocks", "Turnovers", "Personal Fouls", "Game Score", "Field Goal Percentage", "3-Point Field Goal Percentage", "Free Throws", "Free Throws Percentage"))
-    granularity = st.selectbox("What's the granularity?", ('Day', 'Week', 'Month', 'Year'))
-    show_salary = st.checkbox('Show salary')
-    align_career_time = st.checkbox('Align Career Time')
+    granularity = st.selectbox("What's the time granularity? (select a time span that the data will be averaged)", ('Day', 'Week', 'Month', 'Year'))
+    data_type = st.selectbox("Which kind of statistics? (which kind of statistics do you want to compare? points, rebounds, etc.)", ('Points', 'Rebounds', 'Assists', 'Steals', "Blocks", "Turnovers", "Personal Fouls", "Game Score", "Field Goal Percentage", "3-Point Field Goal Percentage", "Free Throws", "Free Throws Percentage"))
+    show_salary = st.checkbox("Show players' salary")
 
     # get plot data
     plot_data = get_plot_data(granularity_data, data_type, start_date, end_date, granularity, align_career_time, career_time_diff)
@@ -155,21 +162,18 @@ if __name__ == '__main__':
         Line2D([0], [0], marker='o', color='w', alpha=0.5, label='LeBron James', markerfacecolor='b'),
     ]
     labels1 = [
-        "Kobe Bryant",
-        "LeBron James",
+        "Kobe Bryant " + data_type,
+        "LeBron James " + data_type,
     ]
 
     if show_salary:
-
         ax2 = ax1.twinx()
-        ax2.fill_between(Kobe_salary[Kobe_salary["Date"].between(start_date, end_date)]["Date"], 0, Kobe_salary[Kobe_salary["Date"].between(start_date, end_date)]["Salary"], alpha=0.15, edgecolors='none', label="Kobe Bryant")
-        ax2.fill_between(Lebron_salary[Lebron_salary["Date"].between(start_date, end_date)]["Date"], 0, Lebron_salary[Lebron_salary["Date"].between(start_date, end_date)]["Salary"], alpha=0.15, edgecolors='none', label="LeBron James")
+        ax2.fill_between(Kobe_salary[Kobe_salary["Date"].between(start_date, end_date)]["Date"], 0, Kobe_salary[Kobe_salary["Date"].between(start_date, end_date)]["Salary"], alpha=0.15, edgecolors='none', label="Kobe Bryant Salary")
+        ax2.fill_between(Lebron_salary[Lebron_salary["Date"].between(start_date, end_date)]["Date"], 0, Lebron_salary[Lebron_salary["Date"].between(start_date, end_date)]["Salary"], alpha=0.15, edgecolors='none', label="LeBron James Salary")
         ax2.yaxis.set_major_formatter(plticker.FormatStrFormatter('$%.1fm'))
     
     # set legend
     if show_salary:
-        legend_elements = [Line2D([0], [0], marker='o', color='w', alpha=0.5, label='LeBron James', markerfacecolor='b'),
-                        Line2D([0], [0], marker='o', color='w', alpha=0.5, label='Kobe Bryant', markerfacecolor='y')]
         lines2, labels2 = ax2.get_legend_handles_labels()
         ax1.legend(lines1 + lines2, labels1 + labels2)
     else:
